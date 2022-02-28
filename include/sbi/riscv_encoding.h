@@ -201,6 +201,13 @@
 
 #endif
 
+#if __riscv_xlen == 64
+#define MENVCFG_STCE			(_UL(1) << 63)
+#else
+#define MENVCFGH_STCE			(_UL(1) << 31)
+#endif
+
+
 #define MHPMEVENT_SSCOF_MASK		_ULL(0xFFFF000000000000)
 
 /* ===== User-level CSRs ===== */
@@ -407,6 +414,10 @@
 #define CSR_MTVEC			0x305
 #define CSR_MCOUNTEREN			0x306
 #define CSR_MSTATUSH			0x310
+
+/* Environment configuration CSRs */
+#define CSR_MENVCFG			0x30A
+#define CSR_MENVCFGH			0x31A
 
 /* Machine Trap Handling */
 #define CSR_MSCRATCH			0x340

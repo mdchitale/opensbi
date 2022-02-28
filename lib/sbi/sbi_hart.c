@@ -528,6 +528,11 @@ __mhpm_skip:
 	if (!trap.cause)
 		hfeatures->features |= SBI_HART_HAS_TIME;
 
+	/* Detect if hart supports menvcfg CSR */
+	csr_read_allowed(CSR_MENVCFG, (unsigned long)&trap);
+	if (!trap.cause)
+		hfeatures->features |= SBI_HART_HAS_MENVCFG;
+
 	/* Detect if hart has AIA local interrupt CSRs */
 	csr_read_allowed(CSR_MTOPI, (unsigned long)&trap);
 	if (trap.cause)
