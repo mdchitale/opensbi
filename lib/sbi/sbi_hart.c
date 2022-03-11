@@ -44,6 +44,7 @@ static void mstatus_init(struct sbi_scratch *scratch)
 	unsigned int num_mhpm = sbi_hart_mhpm_count(scratch);
 	uint64_t mhpmevent_init_val = 0;
 	unsigned long menvcfg_val = 0;
+	unsigned long mstateen_val = 0;
 
 	/* Enable FPU */
 	if (misa_extension('D') || misa_extension('F'))
@@ -70,6 +71,16 @@ static void mstatus_init(struct sbi_scratch *scratch)
 		menvcfg_val |= MENVCFG_STCE;
 		csr_write(CSR_MENVCFG, menvcfg_val);
 #endif
+	}
+
+	if (sbi_hart_has_feature(scratch, SBI_HART_HAS_SMSTATEEN)) {
+		mstateen_val = csr_read(CSR_MSTATEEN0);
+		mstateen_val |= (1UL << SMSTATEEN_STATEN);
+		if (sbi_hart_has_feature(scratch, SBI_HART_HAS_MENVCFG))
+			mstateen_val |= (1UL << SMSTATEEN0_HSENVCFG);
+		else
+			mstateen_val &= ~(1UL << SMSTATEEN0_HSENVCFG);
+		csr_write(CSR_MSTATEEN0, mstateen_val);
 	}
 
 	/* Disable user mode usage of all perf counters except default ones (CY, TM, IR) */
@@ -324,6 +335,9 @@ static inline char *sbi_hart_feature_id2string(unsigned long feature)
 	case SBI_HART_HAS_SSTC:
 		fstr = "sstc";
 		break;
+	case SBI_HART_HAS_SMSTATEEN:
+		fstr = "smstateen";
+		break;
 	default:
 		break;
 	}
@@ -552,7 +566,6 @@ __mhpm_skip:
 	csr_read_allowed(CSR_MENVCFG, (unsigned long)&trap);
 	if (!trap.cause)
 		hfeatures->features |= SBI_HART_HAS_MENVCFG;
-
 	/**
 	 * Detect if hart supports stimecmp CSR(Sstc extension) and menvcfg is
 	 * implemented.
@@ -560,6 +573,11 @@ __mhpm_skip:
 	csr_read_allowed(CSR_STIMECMP, (unsigned long)&trap);
 	if (!trap.cause && sbi_hart_has_feature(scratch, SBI_HART_HAS_MENVCFG))
 		hfeatures->features |= SBI_HART_HAS_SSTC;
+
+	/* Detect if hart supports mstateen CSRs */
+	val = csr_read_allowed(CSR_MSTATEEN0, (unsigned long)&trap);
+	if (!trap.cause)
+		hfeatures->features |= SBI_HART_HAS_SMSTATEEN;
 
 	/* Detect if hart has AIA local interrupt CSRs */
 	csr_read_allowed(CSR_MTOPI, (unsigned long)&trap);
