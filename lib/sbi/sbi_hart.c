@@ -80,6 +80,15 @@ static void mstatus_init(struct sbi_scratch *scratch)
 			mstateen_val |= (1UL << SMSTATEEN0_HSENVCFG);
 		else
 			mstateen_val &= ~(1UL << SMSTATEEN0_HSENVCFG);
+
+		if (sbi_hart_has_feature(scratch, SBI_HART_HAS_AIA))
+			mstateen_val |= (1UL << SMSTATEEN0_AIA |
+					1UL << SMSTATEEN0_SVSLCT |
+					1UL << SMSTATEEN0_IMSIC);
+		else
+			mstateen_val &= ~(1UL << SMSTATEEN0_AIA |
+					1UL << SMSTATEEN0_SVSLCT |
+					1UL << SMSTATEEN0_IMSIC);
 		csr_write(CSR_MSTATEEN0, mstateen_val);
 	}
 
