@@ -161,7 +161,7 @@ ifeq ($(LD_IS_LLD),y)
 RELAX_FLAG	=	-mno-relax
 USE_LD_FLAG	=	-fuse-ld=lld
 else
-USE_LD_FLAG	=	-fuse-ld=bfd
+USE_LD_FLAG	=	-fuse-ld=bfd -Wl,--hash-style=gnu
 endif
 
 # Check whether the linker supports creating PIEs
