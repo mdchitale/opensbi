@@ -116,6 +116,7 @@ static int pmu_event_validate(unsigned long event_idx, uint64_t edata)
 	uint32_t event_idx_code = get_cidx_code(event_idx);
 	uint32_t event_idx_code_max = -1;
 	uint32_t cache_ops_result, cache_ops_id, cache_id;
+	u32 hartid = current_hartid();
 
 	switch(event_idx_type) {
 	case SBI_PMU_EVENT_TYPE_HW:
@@ -124,7 +125,8 @@ static int pmu_event_validate(unsigned long event_idx, uint64_t edata)
 	case SBI_PMU_EVENT_TYPE_FW:
 		if (SBI_PMU_FW_PLATFORM == event_idx_code &&
 		    pmu_dev && pmu_dev->fw_event_validate_encoding)
-			return pmu_dev->fw_event_validate_encoding(edata);
+			return pmu_dev->fw_event_validate_encoding(hartid,
+							           edata);
 		else
 			event_idx_code_max = SBI_PMU_FW_MAX;
 		break;
@@ -189,7 +191,8 @@ int sbi_pmu_ctr_fw_read(uint32_t cidx, uint64_t *cval)
 
 	if (SBI_PMU_FW_PLATFORM == event_code) {
 		if (pmu_dev && pmu_dev->fw_counter_read_value)
-			*cval = pmu_dev->fw_counter_read_value(cidx -
+			*cval = pmu_dev->fw_counter_read_value(hartid,
+							       cidx -
 							       num_hw_ctrs);
 		else
 			*cval = 0;
@@ -376,10 +379,11 @@ static int pmu_ctr_start_fw(uint32_t cidx, uint32_t event_code,
 		    }
 
 		if (ival_update)
-			pmu_dev->fw_counter_write_value(cidx - num_hw_ctrs,
+			pmu_dev->fw_counter_write_value(hartid,
+							cidx - num_hw_ctrs,
 							ival);
 
-		return pmu_dev->fw_counter_start(cidx - num_hw_ctrs,
+		return pmu_dev->fw_counter_start(hartid, cidx - num_hw_ctrs,
 						 event_data);
 	} else {
 		if (ival_update)
@@ -452,11 +456,12 @@ static int pmu_ctr_stop_hw(uint32_t cidx)
 
 static int pmu_ctr_stop_fw(uint32_t cidx, uint32_t event_code)
 {
+	u32 hartid = current_hartid();
 	int ret;
 
 	if (SBI_PMU_FW_PLATFORM == event_code &&
 	    pmu_dev && pmu_dev->fw_counter_stop) {
-		ret = pmu_dev->fw_counter_stop(cidx - num_hw_ctrs);
+		ret = pmu_dev->fw_counter_stop(hartid, cidx - num_hw_ctrs);
 		if (ret)
 			return ret;
 	}
@@ -672,8 +677,9 @@ static int pmu_ctr_find_fw(unsigned long cbase, unsigned long cmask,
 			continue;
 		if (SBI_PMU_FW_PLATFORM == event_code &&
 		    pmu_dev && pmu_dev->fw_counter_match_encoding) {
-			if (!pmu_dev->fw_counter_match_encoding(cidx - num_hw_ctrs,
-								edata))
+			if (!pmu_dev->fw_counter_match_encoding(hartid,
+							    cidx - num_hw_ctrs,
+							    edata))
 				continue;
 		}
 
@@ -739,9 +745,8 @@ skip_match:
 		if (flags & SBI_PMU_CFG_FLAG_AUTO_START) {
 			if (SBI_PMU_FW_PLATFORM == event_code &&
 			    pmu_dev && pmu_dev->fw_counter_start) {
-				ret = pmu_dev->fw_counter_start(ctr_idx -
-								num_hw_ctrs,
-								event_data);
+				ret = pmu_dev->fw_counter_start(hartid,
+					ctr_idx - num_hw_ctrs, event_data);
 				if (ret)
 					return ret;
 			}
